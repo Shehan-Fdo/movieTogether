@@ -10,7 +10,25 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+
+// Custom body parser to capture stream data directly before any framework consumption
+app.use((req, res, next) => {
+  let data = '';
+  req.on('data', chunk => {
+    data += chunk;
+  });
+  req.on('end', () => {
+    req.rawBody = data;
+    if (data) {
+      try {
+        req.body = JSON.parse(data);
+      } catch (e) {
+        // Fallback for non-JSON
+      }
+    }
+    next();
+  });
+});
 
 // API Routes
 app.use('/api/movies', movieRoutes);

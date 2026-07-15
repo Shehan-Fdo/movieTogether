@@ -6,7 +6,7 @@ import crypto from 'crypto';
 const port = process.env.PORT || 5000;
 const server = http.createServer(app);
 
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server, path: '/ws' });
 const clients = new Map();
 let currentMovie = null;
 const bufferingUsers = new Set();
