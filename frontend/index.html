@@ -141,9 +141,11 @@
           </div>
 
           <div class="sync-banner hidden" id="sync-banner">
-            <span class="sync-badge">Sync Room Active</span>
-            <span class="sync-msg" id="sync-msg">Awaiting peer activity...</span>
-            <button class="btn btn-secondary btn-sm" id="resync-btn">Force Sync State</button>
+            <div class="sync-status-indicator">
+              <span class="status-indicator-dot"></span>
+              <span class="sync-msg" id="sync-msg">Awaiting peer activity...</span>
+            </div>
+            <button class="resync-btn" id="resync-btn">Force Sync</button>
           </div>
         </div>
       </section>

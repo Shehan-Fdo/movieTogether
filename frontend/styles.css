@@ -561,25 +561,20 @@ body {
 .sync-banner {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 14px;
-  border-top: 1px solid var(--card-border);
-  padding-top: 20px;
+  border-top: 1px dashed var(--card-border);
+  padding-top: 18px;
   margin-top: 24px;
 }
 
-.sync-badge {
-  display: inline-flex;
+.sync-status-indicator {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-primary);
-  letter-spacing: 0.5px;
+  gap: 8px;
 }
 
-.sync-badge::before {
-  content: '';
+.status-indicator-dot {
   width: 6px;
   height: 6px;
   background-color: var(--text-primary);
@@ -595,14 +590,30 @@ body {
 }
 
 .sync-msg {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  flex-grow: 1;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
 }
 
-.sync-banner .btn {
-  margin-left: auto;
+.resync-btn {
+  background: none;
+  border: 1px solid var(--text-primary);
+  color: var(--text-primary);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.resync-btn:hover {
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
 }
 
 /* Plyr Wrapper Constraints */
@@ -733,22 +744,19 @@ body {
     font-size: 10px;
   }
   .sync-banner {
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    text-align: center;
-    padding-top: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    padding-top: 14px;
   }
-  .sync-banner .btn {
-    margin-left: 0;
-    width: 100%;
-  }
-  .sync-badge {
-    align-self: center;
+  .resync-btn {
+    width: auto;
+    font-size: 8px;
+    padding: 4px 10px;
   }
   .sync-msg {
     text-align: center;
-    font-size: 11px;
+    font-size: 10px;
   }
   .modal-content {
     margin: 16px;
