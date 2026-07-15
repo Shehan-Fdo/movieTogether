@@ -1,21 +1,21 @@
 :root {
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #141414;
-  --card-bg: #101010;
-  --card-border: rgba(255, 255, 255, 0.08);
-  --card-border-hover: rgba(255, 255, 255, 0.3);
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --card-bg: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.08);
+  --card-border-hover: rgba(0, 0, 0, 0.25);
   
-  --text-primary: #ffffff;
-  --text-secondary: #8e8e8e;
-  --text-muted: #555555;
+  --text-primary: #111111;
+  --text-secondary: #666666;
+  --text-muted: #999999;
   
-  --accent-color: #ffffff;
-  --accent-bg: #ffffff;
-  --accent-text: #0a0a0a;
+  --accent-color: #000000;
+  --accent-bg: #000000;
+  --accent-text: #ffffff;
   
-  --danger: #ff3333;
-  --success: #33ff33;
-  --warning: #ffaa00;
+  --danger: #d32f2f;
+  --success: #2e7d32;
+  --warning: #ed6c02;
   
   --font-main: 'Outfit', sans-serif;
   --transition-smooth: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -37,7 +37,7 @@ body {
   line-height: 1.5;
 }
 
-/* Hide Ambient Glows for Minimal Look */
+/* Hide Ambient Glows */
 .glow {
   display: none !important;
 }
@@ -58,7 +58,7 @@ body {
   align-items: center;
   margin-bottom: 40px;
   padding-bottom: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .logo-area {
@@ -84,10 +84,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.02);
   padding: 6px 14px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -101,7 +101,7 @@ body {
   display: inline-block;
 }
 
-.status-dot.online { background-color: var(--text-primary); box-shadow: 0 0 6px rgba(255, 255, 255, 0.5); }
+.status-dot.online { background-color: var(--text-primary); box-shadow: 0 0 6px rgba(0, 0, 0, 0.2); }
 .status-dot.offline { background-color: var(--danger); }
 .status-dot.syncing { background-color: var(--warning); }
 
@@ -131,7 +131,7 @@ body {
 
 /* Cards Base */
 .card {
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 30px;
   border: 1px solid var(--card-border);
   background-color: var(--card-bg);
@@ -148,7 +148,7 @@ body {
   gap: 12px;
   margin-bottom: 24px;
   position: relative;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   padding-bottom: 12px;
 }
 
@@ -159,7 +159,7 @@ body {
 }
 
 .card-header h2 {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -188,8 +188,8 @@ body {
 }
 
 .input-group input {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 4px;
   padding: 12px 14px;
   color: var(--text-primary);
@@ -201,7 +201,7 @@ body {
 .input-group input:focus {
   outline: none;
   border-color: var(--accent-color);
-  background: rgba(255, 255, 255, 0.04);
+  background: #ffffff;
 }
 
 /* Buttons */
@@ -210,7 +210,7 @@ body {
   border-radius: 4px;
   padding: 12px 24px;
   font-family: var(--font-main);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
@@ -237,12 +237,12 @@ body {
 .btn-secondary {
   background: transparent;
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 .btn-secondary:hover {
   border-color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .btn-sm {
@@ -266,7 +266,7 @@ body {
 }
 
 .btn-icon:hover {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(0, 0, 0, 0.1);
   color: var(--text-primary);
 }
 
@@ -294,7 +294,7 @@ body {
 .download-progress-container {
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .download-progress-container h3 {
@@ -313,10 +313,10 @@ body {
 }
 
 .progress-item {
-  background: rgba(255, 255, 255, 0.01);
+  background: rgba(0, 0, 0, 0.01);
   border-radius: 4px;
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .progress-item-info {
@@ -342,7 +342,7 @@ body {
 .progress-bar-bg {
   width: 100%;
   height: 2px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.08);
   border-radius: 1px;
   overflow: hidden;
   margin-bottom: 10px;
@@ -385,7 +385,7 @@ body {
 }
 
 .library-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.1);
   border-radius: 2px;
 }
 
@@ -404,7 +404,7 @@ body {
 
 .movie-card {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 4px;
   padding: 14px 18px;
   display: flex;
@@ -416,7 +416,7 @@ body {
 
 .movie-card:hover {
   border-color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(0, 0, 0, 0.01);
 }
 
 .movie-card-icon {
@@ -461,7 +461,7 @@ body {
   height: 28px;
   border-radius: 4px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -492,10 +492,10 @@ body {
   font-size: 11px;
   font-weight: 700;
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.03);
   padding: 4px 12px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   margin-left: auto;
   max-width: 50%;
   white-space: nowrap;
@@ -512,7 +512,7 @@ body {
   aspect-ratio: 16 / 9;
   width: 100%;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   margin-bottom: 24px;
 }
 
@@ -522,7 +522,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #060606;
+  background: #f4f4f6;
   z-index: 2;
   padding: 30px;
   text-align: center;
@@ -559,8 +559,8 @@ body {
 
 /* Watch Together Status Banner */
 .sync-banner {
-  background: rgba(255, 255, 255, 0.01);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.01);
+  border: 1px solid rgba(0, 0, 0, 0.04);
   border-radius: 4px;
   padding: 14px 20px;
   display: flex;
@@ -573,10 +573,10 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   padding: 2px 10px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.03);
   letter-spacing: 0.5px;
 }
 
