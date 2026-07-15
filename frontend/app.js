@@ -4,6 +4,7 @@ let isSyncing = false;
 let activeTasksPollInterval = null;
 let player = null;
 let currentUser = null;
+let isBufferingLocal = false;
 
 const wsStatusDot = document.querySelector('#ws-status .status-dot');
 const wsStatusLabel = document.querySelector('#ws-status .status-label');
@@ -166,12 +167,17 @@ function showSyncMessage(text) {
 
 // --- HTML5 Video Event Listeners ---
 sharedVideo.addEventListener('play', () => {
+  isBufferingLocal = false;
   if (isSyncing) return;
   sendWS({ type: 'play', time: sharedVideo.currentTime, fileName: activeFileName });
   showSyncMessage('You started playing');
 });
 
 sharedVideo.addEventListener('pause', () => {
+  if (isBufferingLocal) {
+    isBufferingLocal = false;
+    sendWS({ type: 'buffered', username: currentUser });
+  }
   if (isSyncing) return;
   sendWS({ type: 'pause', time: sharedVideo.currentTime, fileName: activeFileName });
   showSyncMessage('You paused');
@@ -185,12 +191,18 @@ sharedVideo.addEventListener('seeked', () => {
 
 sharedVideo.addEventListener('waiting', () => {
   if (isSyncing) return;
-  sendWS({ type: 'buffering', username: currentUser });
+  if (!sharedVideo.paused && !sharedVideo.seeking && !isBufferingLocal) {
+    isBufferingLocal = true;
+    sendWS({ type: 'buffering', username: currentUser });
+  }
 });
 
 sharedVideo.addEventListener('playing', () => {
   if (isSyncing) return;
-  sendWS({ type: 'buffered', username: currentUser });
+  if (isBufferingLocal) {
+    isBufferingLocal = false;
+    sendWS({ type: 'buffered', username: currentUser });
+  }
 });
 
 // Force sync local state to others
