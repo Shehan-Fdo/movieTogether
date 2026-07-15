@@ -621,3 +621,40 @@ body {
   padding-left: 10px;
   padding-right: 10px;
 }
+
+/* User Selection Modal Styles */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.modal-content {
+  text-align: center;
+  max-width: 380px;
+  width: 100%;
+  border: 1px solid var(--text-primary);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.modal-content h2 {
+  margin-bottom: 24px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.user-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.user-buttons .btn {
+  flex: 1;
+}

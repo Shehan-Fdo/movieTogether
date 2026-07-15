@@ -21,10 +21,13 @@ wss.on('connection', (ws) => {
       
       switch (data.type) {
         case 'join':
-          console.log(`Client ${clientId} joined`);
+          const meta = clients.get(ws);
+          if (meta) meta.username = data.username;
+          console.log(`Client ${clientId} (${data.username || 'unknown'}) joined`);
           if (currentMovie) {
             ws.send(JSON.stringify({ type: 'movie-change', fileName: currentMovie }));
           }
+          broadcastUserList();
           broadcast({ type: 'state-request', targetId: clientId }, clientId);
           break;
 
@@ -45,12 +48,14 @@ wss.on('connection', (ws) => {
         case 'play':
         case 'pause':
         case 'seek':
+          const senderMeta = clients.get(ws);
           broadcast({
             type: 'sync',
             action: data.type,
             time: data.time,
             fileName: data.fileName,
-            senderId: clientId
+            senderId: clientId,
+            senderUsername: senderMeta ? senderMeta.username : 'Someone'
           }, clientId);
           break;
 
@@ -74,6 +79,7 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     clients.delete(ws);
     console.log(`Client disconnected: ${clientId}. Total: ${clients.size}`);
+    broadcastUserList();
   });
 });
 
@@ -87,6 +93,11 @@ function broadcast(messageObj, excludeClientId = null) {
       ws.send(payload);
     }
   }
+}
+
+function broadcastUserList() {
+  const userList = Array.from(clients.values()).map(c => c.username).filter(Boolean);
+  broadcast({ type: 'users-update', users: userList });
 }
 
 server.listen(port, () => {

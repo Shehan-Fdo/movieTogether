@@ -3,6 +3,7 @@ let activeFileName = null;
 let isSyncing = false;
 let activeTasksPollInterval = null;
 let player = null;
+let currentUser = null;
 
 const wsStatusDot = document.querySelector('#ws-status .status-dot');
 const wsStatusLabel = document.querySelector('#ws-status .status-label');
@@ -32,7 +33,7 @@ function connectWS() {
     console.log('WebSocket connected');
     wsStatusDot.className = 'status-dot online';
     wsStatusLabel.textContent = 'Sync Room Connected';
-    sendWS({ type: 'join' });
+    sendWS({ type: 'join', username: currentUser });
   };
 
   ws.onmessage = async (event) => {
@@ -61,6 +62,10 @@ function connectWS() {
           showSyncMessage(`Loaded movie: ${data.fileName}`);
           break;
 
+        case 'users-update':
+          updateStatusBanner(data.users);
+          break;
+
         case 'sync':
           console.log(`Sync action received: ${data.action} at ${data.time}`);
           if (activeFileName !== data.fileName && data.fileName) {
@@ -70,6 +75,7 @@ function connectWS() {
           isSyncing = true;
           sharedVideo.currentTime = data.time;
           
+          const peerName = data.senderUsername || (currentUser === 'Duck' ? 'Von' : 'Duck');
           if (data.action === 'play') {
             sharedVideo.play().then(() => {
               setTimeout(() => { isSyncing = false; }, 250);
@@ -77,14 +83,14 @@ function connectWS() {
               console.warn('Playback block:', e);
               isSyncing = false;
             });
-            showSyncMessage('GF pressed Play');
+            showSyncMessage(`${peerName} pressed Play`);
           } else if (data.action === 'pause') {
             sharedVideo.pause();
             setTimeout(() => { isSyncing = false; }, 250);
-            showSyncMessage('GF pressed Pause');
+            showSyncMessage(`${peerName} pressed Pause`);
           } else if (data.action === 'seek') {
             setTimeout(() => { isSyncing = false; }, 250);
-            showSyncMessage(`GF jumped to ${formatTime(data.time)}`);
+            showSyncMessage(`${peerName} jumped to ${formatTime(data.time)}`);
           } else {
             isSyncing = false;
           }
@@ -104,6 +110,20 @@ function connectWS() {
     wsStatusLabel.textContent = 'Offline (Sync Disconnected)';
     setTimeout(connectWS, 3000);
   };
+}
+
+function updateStatusBanner(users) {
+  const isDuckOnline = users.includes('Duck');
+  const isVonOnline = users.includes('Von');
+
+  if (isDuckOnline && isVonOnline) {
+    wsStatusDot.className = 'status-dot online';
+    wsStatusLabel.textContent = 'Duck & Von Connected';
+  } else {
+    wsStatusDot.className = 'status-dot syncing';
+    const otherUser = currentUser === 'Duck' ? 'Von' : 'Duck';
+    wsStatusLabel.textContent = `Waiting for ${otherUser}...`;
+  }
 }
 
 function sendWS(messageObj) {
@@ -410,8 +430,31 @@ function escapeHtml(str) {
 }
 
 // --- Init ---
-connectWS();
-loadLibrary();
-refreshLibraryBtn.addEventListener('click', loadLibrary);
-// Check for existing/stale progress on load
-pollDownloadProgress();
+const userModal = document.getElementById('user-modal');
+const btnDuck = document.getElementById('btn-duck');
+const btnVon = document.getElementById('btn-von');
+
+function selectUser(user) {
+  currentUser = user;
+  localStorage.setItem('movieTogether_user', user);
+  userModal.style.opacity = '0';
+  setTimeout(() => userModal.classList.add('hidden'), 200);
+  
+  connectWS();
+  loadLibrary();
+  refreshLibraryBtn.addEventListener('click', loadLibrary);
+  pollDownloadProgress();
+}
+
+const storedUser = localStorage.getItem('movieTogether_user');
+if (storedUser && (storedUser === 'Duck' || storedUser === 'Von')) {
+  currentUser = storedUser;
+  userModal.classList.add('hidden');
+  connectWS();
+  loadLibrary();
+  refreshLibraryBtn.addEventListener('click', loadLibrary);
+  pollDownloadProgress();
+} else {
+  btnDuck.addEventListener('click', () => selectUser('Duck'));
+  btnVon.addEventListener('click', () => selectUser('Von'));
+}
