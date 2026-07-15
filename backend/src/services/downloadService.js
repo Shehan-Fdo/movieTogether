@@ -82,6 +82,15 @@ async function runDownloadTask(taskId) {
     const maxConcurrentUploads = 3;
     let uploadError = null;
 
+    const abortPromise = controller ? new Promise((_, reject) => {
+      if (controller.signal.aborted) {
+        reject(new DOMException('The operation was aborted.', 'AbortError'));
+      }
+      controller.signal.addEventListener('abort', () => {
+        reject(new DOMException('The operation was aborted.', 'AbortError'));
+      });
+    }) : null;
+
     for await (const chunk of stream) {
       if (uploadError) {
         throw uploadError;
@@ -108,9 +117,17 @@ async function runDownloadTask(taskId) {
         // Apply backpressure if we exceed max concurrent uploads
         while (uploadPromises.filter(p => !p.resolved).length >= maxConcurrentUploads) {
           if (uploadError) throw uploadError;
+          if (controller && controller.signal.aborted) {
+            throw new DOMException('The operation was aborted.', 'AbortError');
+          }
           task.status = 'uploading (backpressure)';
           console.log(`Backpressure triggered. Waiting for active B2 uploads to drain...`);
-          await Promise.race(uploadPromises.filter(p => !p.resolved).map(p => p.promise));
+          
+          const activePromises = uploadPromises.filter(p => !p.resolved).map(p => p.promise);
+          if (abortPromise) {
+            activePromises.push(abortPromise);
+          }
+          await Promise.race(activePromises);
         }
 
         task.status = 'downloading';
@@ -158,7 +175,13 @@ async function runDownloadTask(taskId) {
     if (uploadPromises.length > 0) {
       task.status = 'uploading remaining parts';
       console.log('Waiting for all background B2 uploads to finish...');
-      await Promise.all(uploadPromises.map(p => p.promise));
+      
+      const allUploads = Promise.all(uploadPromises.map(p => p.promise));
+      if (abortPromise) {
+        await Promise.race([allUploads, abortPromise]);
+      } else {
+        await allUploads;
+      }
     }
 
     if (uploadError) {
