@@ -3,8 +3,13 @@ import { startDownload, activeDownloads, cancelDownload } from '../services/down
 import { b2Config } from '../config/b2.js';
 
 export async function downloadMovie(req, res) {
+  console.log('--- downloadMovie request received ---');
+  console.log('Method:', req.method);
+  console.log('Headers:', req.headers);
+  console.log('Body type:', typeof req.body);
+  console.log('Body:', req.body);
   try {
-    const { url, customName } = req.body;
+    const { url, customName } = req.body || {};
     if (!url) {
       return res.status(400).json({ error: 'Missing download URL' });
     }
