@@ -5,6 +5,7 @@ let activeTasksPollInterval = null;
 let player = null;
 let currentUser = null;
 let isBufferingLocal = false;
+let pingInterval = null;
 
 const wsStatusDot = document.querySelector('#ws-status .status-dot');
 const wsStatusLabel = document.querySelector('#ws-status .status-label');
@@ -35,6 +36,10 @@ function connectWS() {
     wsStatusDot.className = 'status-dot online';
     wsStatusLabel.textContent = 'Sync Room Connected';
     sendWS({ type: 'join', username: currentUser });
+    if (pingInterval) clearInterval(pingInterval);
+    pingInterval = setInterval(() => {
+      sendWS({ type: 'ping', timestamp: Date.now() });
+    }, 2000);
   };
 
   ws.onmessage = async (event) => {
@@ -63,8 +68,17 @@ function connectWS() {
           showSyncMessage(`Loaded movie: ${data.fileName}`);
           break;
 
-        case 'users-update':
+        case 'status-update':
           updateStatusBanner(data.users);
+          break;
+
+        case 'pong':
+          const latency = Date.now() - data.timestamp;
+          let speed = null;
+          if (navigator.connection && navigator.connection.downlink) {
+            speed = navigator.connection.downlink;
+          }
+          sendWS({ type: 'latency-report', username: currentUser, latency, speed });
           break;
 
         case 'pause-for-buffer':
@@ -129,21 +143,37 @@ function connectWS() {
     console.log('WebSocket disconnected. Reconnecting in 3s...');
     wsStatusDot.className = 'status-dot offline';
     wsStatusLabel.textContent = 'Offline (Sync Disconnected)';
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
+    }
     setTimeout(connectWS, 3000);
   };
 }
 
 function updateStatusBanner(users) {
-  const isDuckOnline = users.includes('Duck');
-  const isVonOnline = users.includes('Von');
+  const isDuckOnline = users.some(u => u.username === 'Duck');
+  const isVonOnline = users.some(u => u.username === 'Von');
+  
+  let statusHtml = '';
+  users.forEach((user, idx) => {
+    const pingText = user.latency !== null ? `${user.latency}ms` : 'connecting';
+    const speedText = user.speed !== null ? ` • ${user.speed} Mbps` : '';
+    const lagWarning = user.latency > 150 ? ' (Lagging)' : '';
+    
+    statusHtml += `<span style="font-weight: 700;">${user.username}</span> <span style="color: var(--text-secondary); font-size: 11px;">(${pingText}${speedText}${lagWarning})</span>`;
+    if (idx < users.length - 1) {
+      statusHtml += ' <span style="color: var(--text-muted); margin: 0 8px;">|</span> ';
+    }
+  });
+
+  wsStatusLabel.innerHTML = statusHtml || 'Sync Room Offline';
 
   if (isDuckOnline && isVonOnline) {
-    wsStatusDot.className = 'status-dot online';
-    wsStatusLabel.textContent = 'Duck & Von Connected';
+    const hasLag = users.some(u => u.latency > 150);
+    wsStatusDot.className = hasLag ? 'status-dot syncing' : 'status-dot online';
   } else {
     wsStatusDot.className = 'status-dot syncing';
-    const otherUser = currentUser === 'Duck' ? 'Von' : 'Duck';
-    wsStatusLabel.textContent = `Waiting for ${otherUser}...`;
   }
 }
 

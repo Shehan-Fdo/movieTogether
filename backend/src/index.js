@@ -23,13 +23,30 @@ wss.on('connection', (ws) => {
       switch (data.type) {
         case 'join':
           const meta = clients.get(ws);
-          if (meta) meta.username = data.username;
+          if (meta) {
+            meta.username = data.username;
+            meta.latency = null;
+            meta.speed = null;
+          }
           console.log(`Client ${clientId} (${data.username || 'unknown'}) joined`);
           if (currentMovie) {
             ws.send(JSON.stringify({ type: 'movie-change', fileName: currentMovie }));
           }
           broadcastUserList();
           broadcast({ type: 'state-request', targetId: clientId }, clientId);
+          break;
+
+        case 'ping':
+          ws.send(JSON.stringify({ type: 'pong', timestamp: data.timestamp }));
+          break;
+
+        case 'latency-report':
+          const currentMeta = clients.get(ws);
+          if (currentMeta) {
+            currentMeta.latency = data.latency;
+            currentMeta.speed = data.speed;
+          }
+          broadcastUserList();
           break;
 
         case 'buffering':
@@ -118,8 +135,12 @@ function broadcast(messageObj, excludeClientId = null) {
 }
 
 function broadcastUserList() {
-  const userList = Array.from(clients.values()).map(c => c.username).filter(Boolean);
-  broadcast({ type: 'users-update', users: userList });
+  const userList = Array.from(clients.values()).map(c => ({
+    username: c.username,
+    latency: c.latency || null,
+    speed: c.speed || null
+  })).filter(u => u.username);
+  broadcast({ type: 'status-update', users: userList });
 }
 
 server.listen(port, () => {
