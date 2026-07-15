@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>movieTogether - Watch Movies with Your Favorite Person</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Ambient Background Glows -->
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+          <line x1="7" y1="2" x2="7" y2="22"></line>
+          <line x1="17" y1="2" x2="17" y2="22"></line>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <line x1="2" y1="7" x2="7" y2="7"></line>
+          <line x1="2" y1="17" x2="7" y2="17"></line>
+          <line x1="17" y1="17" x2="22" y2="17"></line>
+          <line x1="17" y1="7" x2="22" y2="7"></line>
+        </svg>
+        <h1 class="logo-text">movieTogether</h1>
+      </div>
+      <div class="connection-status" id="ws-status">
+        <span class="status-dot offline"></span>
+        <span class="status-label">Connecting Sync...</span>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="app-grid">
+      
+      <!-- Left Column: Controller / Downloader & Library -->
+      <section class="left-panel">
+        <!-- Downloader Card -->
+        <div class="card glass-card downloader-card">
+          <div class="card-header">
+            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <h2>Fetch Movie</h2>
+          </div>
+          <form id="download-form" class="download-form">
+            <div class="input-group">
+              <label for="movie-url">Download URL (Seedr.cc link)</label>
+              <input type="url" id="movie-url" placeholder="https://seedr.cc/ff_get/..." required autocomplete="off">
+            </div>
+            <div class="input-group">
+              <label for="movie-name">Custom Name (Optional)</label>
+              <input type="text" id="movie-name" placeholder="e.g. Obsession.2025.mp4" autocomplete="off">
+            </div>
+            <button type="submit" class="btn btn-primary" id="download-btn">
+              <span>Start Downloading</span>
+              <svg class="btn-loader hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10"></path>
+              </svg>
+            </button>
+          </form>
+
+          <!-- Download Progress Section -->
+          <div class="download-progress-container hidden" id="progress-container">
+            <h3>Active Downloads</h3>
+            <div class="progress-list" id="progress-list">
+              <!-- Dynamically populated download tasks -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Library Card -->
+        <div class="card glass-card library-card">
+          <div class="card-header">
+            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <h2>Available Movies</h2>
+            <button class="btn-icon" id="refresh-library-btn" title="Refresh Library">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="library-content">
+            <div class="empty-library hidden" id="empty-library">
+              <p>No movies downloaded yet. Fetch one above to get started!</p>
+            </div>
+            <div class="library-grid" id="movie-grid">
+              <!-- Dynamically populated movie cards -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Theater Room -->
+      <section class="right-panel">
+        <div class="card glass-card theater-card">
+          <div class="card-header">
+            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <h2>Theater Room</h2>
+            <div class="theater-active-movie" id="active-movie-title">No Movie Selected</div>
+          </div>
+          
+          <div class="player-wrapper">
+            <div class="player-placeholder" id="player-placeholder">
+              <div class="placeholder-content">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="placeholder-icon">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <p>Select a movie from the library or download one to begin watching together.</p>
+              </div>
+            </div>
+            <video id="shared-video" class="shared-video hidden" controls></video>
+          </div>
+
+          <div class="sync-banner hidden" id="sync-banner">
+            <span class="sync-badge">Sync Room Active</span>
+            <span class="sync-msg" id="sync-msg">Awaiting peer activity...</span>
+            <button class="btn btn-secondary btn-sm" id="resync-btn">Force Sync State</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

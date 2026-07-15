@@ -1,0 +1,17 @@
+{
+  "name": "movietogether-backend",
+  "version": "1.0.0",
+  "description": "Backend for movieTogether, streaming download/upload to B2, and playback sync",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env src/index.js",
+    "dev": "node --watch --env-file=.env src/index.js",
+    "test": "node --env-file=.env --test"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "ws": "^8.18.0"
+  }
+}
