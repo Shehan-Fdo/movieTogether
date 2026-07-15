@@ -78,7 +78,15 @@ async function runDownloadTask(taskId) {
 
     const stream = Readable.fromWeb(response.body);
 
+    const uploadPromises = [];
+    const maxConcurrentUploads = 3;
+    let uploadError = null;
+
     for await (const chunk of stream) {
+      if (uploadError) {
+        throw uploadError;
+      }
+
       buffers.push(chunk);
       accumulatedLength += chunk.length;
 
@@ -94,23 +102,67 @@ async function runDownloadTask(taskId) {
         buffers = [];
         accumulatedLength = 0;
 
-        task.status = `uploading chunk ${partNumber}`;
-        console.log(`Uploading Part ${partNumber} (${partBuffer.length} bytes)...`);
-        const { uploadUrl, authorizationToken } = await b2Service.getUploadPartUrl(fileId);
-        const result = await b2Service.uploadPart(uploadUrl, authorizationToken, partNumber, partBuffer);
-        parts.push(result);
+        const currentPart = partNumber;
         partNumber++;
+
+        // Apply backpressure if we exceed max concurrent uploads
+        while (uploadPromises.filter(p => !p.resolved).length >= maxConcurrentUploads) {
+          if (uploadError) throw uploadError;
+          task.status = 'uploading (backpressure)';
+          console.log(`Backpressure triggered. Waiting for active B2 uploads to drain...`);
+          await Promise.race(uploadPromises.filter(p => !p.resolved).map(p => p.promise));
+        }
+
         task.status = 'downloading';
+        console.log(`Starting background upload for Part ${currentPart}...`);
+        
+        const uploadObj = { resolved: false };
+        const promise = (async () => {
+          try {
+            const { uploadUrl, authorizationToken } = await b2Service.getUploadPartUrl(fileId);
+            const result = await b2Service.uploadPart(uploadUrl, authorizationToken, currentPart, partBuffer);
+            parts.push(result);
+          } catch (err) {
+            uploadError = err;
+          } finally {
+            uploadObj.resolved = true;
+          }
+        })();
+        uploadObj.promise = promise;
+        uploadPromises.push(uploadObj);
       }
     }
 
     if (accumulatedLength > 0) {
+      if (uploadError) throw uploadError;
       const partBuffer = Buffer.concat(buffers, accumulatedLength);
-      task.status = 'uploading final chunk';
-      console.log(`Uploading Final Part ${partNumber} (${partBuffer.length} bytes)...`);
-      const { uploadUrl, authorizationToken } = await b2Service.getUploadPartUrl(fileId);
-      const result = await b2Service.uploadPart(uploadUrl, authorizationToken, partNumber, partBuffer);
-      parts.push(result);
+      const currentPart = partNumber;
+      
+      console.log(`Starting background upload for Final Part ${currentPart}...`);
+      const uploadObj = { resolved: false };
+      const promise = (async () => {
+        try {
+          const { uploadUrl, authorizationToken } = await b2Service.getUploadPartUrl(fileId);
+          const result = await b2Service.uploadPart(uploadUrl, authorizationToken, currentPart, partBuffer);
+          parts.push(result);
+        } catch (err) {
+          uploadError = err;
+        } finally {
+          uploadObj.resolved = true;
+        }
+      })();
+      uploadObj.promise = promise;
+      uploadPromises.push(uploadObj);
+    }
+
+    if (uploadPromises.length > 0) {
+      task.status = 'uploading remaining parts';
+      console.log('Waiting for all background B2 uploads to finish...');
+      await Promise.all(uploadPromises.map(p => p.promise));
+    }
+
+    if (uploadError) {
+      throw uploadError;
     }
 
     console.log('Finishing B2 Large File...');
