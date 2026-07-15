@@ -414,9 +414,14 @@ downloadForm.addEventListener('submit', async (e) => {
     downloadBtn.disabled = true;
     btnLoader.classList.remove('hidden');
 
-    const res = await fetch('/api/movies/download', {
+    const queryParams = `?url=${encodeURIComponent(url)}&customName=${encodeURIComponent(customName)}`;
+    const res = await fetch(`/api/movies/download${queryParams}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Download-Url': encodeURIComponent(url),
+        'X-Custom-Name': encodeURIComponent(customName)
+      },
       body: JSON.stringify({ url, customName })
     });
 

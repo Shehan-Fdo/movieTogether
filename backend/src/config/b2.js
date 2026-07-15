@@ -6,6 +6,5 @@ export const b2Config = {
 };
 
 if (!b2Config.keyId || !b2Config.applicationKey || !b2Config.bucketId || !b2Config.bucketName) {
-  console.error("CRITICAL ERROR: Backblaze B2 environment variables are missing!");
-  process.exit(1);
+  console.warn("WARNING: Backblaze B2 environment variables are missing! Movie operations will fail.");
 }

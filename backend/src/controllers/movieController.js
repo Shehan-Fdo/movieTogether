@@ -9,7 +9,23 @@ export async function downloadMovie(req, res) {
   console.log('Body type:', typeof req.body);
   console.log('Body:', req.body);
   try {
-    const { url, customName } = req.body || {};
+    let url = req.body?.url;
+    let customName = req.body?.customName;
+
+    // Fallback 1: Query parameters
+    if (!url && req.query.url) {
+      url = decodeURIComponent(req.query.url);
+      customName = req.query.customName ? decodeURIComponent(req.query.customName) : '';
+      console.log('Resolved url from query parameters:', url);
+    }
+
+    // Fallback 2: Custom headers
+    if (!url && req.headers['x-download-url']) {
+      url = decodeURIComponent(req.headers['x-download-url']);
+      customName = req.headers['x-custom-name'] ? decodeURIComponent(req.headers['x-custom-name']) : '';
+      console.log('Resolved url from custom headers:', url);
+    }
+
     if (!url) {
       return res.status(400).json({ 
         error: 'Missing download URL',
