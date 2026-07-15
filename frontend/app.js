@@ -2,6 +2,7 @@ let ws = null;
 let activeFileName = null;
 let isSyncing = false;
 let activeTasksPollInterval = null;
+let player = null;
 
 const wsStatusDot = document.querySelector('#ws-status .status-dot');
 const wsStatusLabel = document.querySelector('#ws-status .status-label');
@@ -226,6 +227,16 @@ async function loadMovie(fileName) {
     syncBanner.classList.remove('hidden');
 
     sharedVideo.src = data.playUrl;
+    
+    if (!player) {
+      player = new Plyr(sharedVideo, {
+        controls: [
+          'play-large', 'play', 'progress', 'current-time', 
+          'duration', 'mute', 'volume', 'settings', 'fullscreen'
+        ]
+      });
+    }
+
     sharedVideo.load();
     
     // Play movie

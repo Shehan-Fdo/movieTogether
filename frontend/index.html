@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
 </head>
 <body>
   <!-- Ambient Background Glows -->
@@ -125,7 +126,7 @@
                 <p>Select a movie from the library or download one to begin watching together.</p>
               </div>
             </div>
-            <video id="shared-video" class="shared-video hidden" controls></video>
+            <video id="shared-video" class="shared-video hidden" controls preload="auto" playsinline></video>
           </div>
 
           <div class="sync-banner hidden" id="sync-banner">
@@ -139,6 +140,7 @@
     </main>
   </div>
 
+  <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
