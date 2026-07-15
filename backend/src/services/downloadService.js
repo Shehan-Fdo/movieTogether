@@ -94,16 +94,19 @@ async function runDownloadTask(taskId) {
         buffers = [];
         accumulatedLength = 0;
 
+        task.status = `uploading chunk ${partNumber}`;
         console.log(`Uploading Part ${partNumber} (${partBuffer.length} bytes)...`);
         const { uploadUrl, authorizationToken } = await b2Service.getUploadPartUrl(fileId);
         const result = await b2Service.uploadPart(uploadUrl, authorizationToken, partNumber, partBuffer);
         parts.push(result);
         partNumber++;
+        task.status = 'downloading';
       }
     }
 
     if (accumulatedLength > 0) {
       const partBuffer = Buffer.concat(buffers, accumulatedLength);
+      task.status = 'uploading final chunk';
       console.log(`Uploading Final Part ${partNumber} (${partBuffer.length} bytes)...`);
       const { uploadUrl, authorizationToken } = await b2Service.getUploadPartUrl(fileId);
       const result = await b2Service.uploadPart(uploadUrl, authorizationToken, partNumber, partBuffer);
