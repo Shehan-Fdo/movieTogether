@@ -66,6 +66,26 @@ function connectWS() {
           updateStatusBanner(data.users);
           break;
 
+        case 'pause-for-buffer':
+          console.log(`Buffering lock from: ${data.username}`);
+          isSyncing = true;
+          sharedVideo.pause();
+          setTimeout(() => { isSyncing = false; }, 250);
+          showSyncMessage(`Waiting for ${data.username}'s connection...`);
+          break;
+
+        case 'resume-from-buffer':
+          console.log('Buffering lock resolved');
+          isSyncing = true;
+          sharedVideo.play().then(() => {
+            setTimeout(() => { isSyncing = false; }, 250);
+          }).catch(e => {
+            console.warn('Playback block:', e);
+            isSyncing = false;
+          });
+          showSyncMessage('Resumed');
+          break;
+
         case 'sync':
           console.log(`Sync action received: ${data.action} at ${data.time}`);
           if (activeFileName !== data.fileName && data.fileName) {
@@ -161,6 +181,16 @@ sharedVideo.addEventListener('seeked', () => {
   if (isSyncing) return;
   sendWS({ type: 'seek', time: sharedVideo.currentTime, fileName: activeFileName });
   showSyncMessage(`You jumped to ${formatTime(sharedVideo.currentTime)}`);
+});
+
+sharedVideo.addEventListener('waiting', () => {
+  if (isSyncing) return;
+  sendWS({ type: 'buffering', username: currentUser });
+});
+
+sharedVideo.addEventListener('playing', () => {
+  if (isSyncing) return;
+  sendWS({ type: 'buffered', username: currentUser });
 });
 
 // Force sync local state to others

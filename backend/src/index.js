@@ -9,6 +9,7 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 const clients = new Map();
 let currentMovie = null;
+const bufferingUsers = new Set();
 
 wss.on('connection', (ws) => {
   const clientId = crypto.randomUUID();
@@ -29,6 +30,20 @@ wss.on('connection', (ws) => {
           }
           broadcastUserList();
           broadcast({ type: 'state-request', targetId: clientId }, clientId);
+          break;
+
+        case 'buffering':
+          bufferingUsers.add(data.username);
+          console.log(`User ${data.username} is buffering. Active:`, Array.from(bufferingUsers));
+          broadcast({ type: 'pause-for-buffer', username: data.username });
+          break;
+
+        case 'buffered':
+          bufferingUsers.delete(data.username);
+          console.log(`User ${data.username} finished buffering. Remaining:`, Array.from(bufferingUsers));
+          if (bufferingUsers.size === 0) {
+            broadcast({ type: 'resume-from-buffer' });
+          }
           break;
 
         case 'state-response':
@@ -77,6 +92,13 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
+    const meta = clients.get(ws);
+    if (meta && meta.username) {
+      bufferingUsers.delete(meta.username);
+      if (bufferingUsers.size === 0) {
+        broadcast({ type: 'resume-from-buffer' });
+      }
+    }
     clients.delete(ws);
     console.log(`Client disconnected: ${clientId}. Total: ${clients.size}`);
     broadcastUserList();
