@@ -127,56 +127,6 @@ body {
   align-items: start;
 }
 
-/* Tablet / iPad Landscape / Portrait Responsive */
-@media (max-width: 1024px) {
-  .app-container {
-    padding: 24px;
-  }
-  .app-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-  }
-  .left-panel {
-    order: 2;
-    width: 100%;
-  }
-  .right-panel {
-    order: 1;
-    width: 100%;
-  }
-}
-
-/* Mobile Phone Responsive */
-@media (max-width: 768px) {
-  .app-container {
-    padding: 16px;
-  }
-  .app-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  .connection-status {
-    width: 100%;
-    justify-content: center;
-  }
-  .card {
-    padding: 20px;
-  }
-  .theater-card .card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  .theater-active-movie {
-    margin-left: 0;
-    max-width: 100%;
-    width: 100%;
-    text-align: center;
-  }
-}
-
 .left-panel {
   display: flex;
   flex-direction: column;
@@ -701,4 +651,101 @@ body {
 
 .user-buttons .btn {
   flex: 1;
+}
+
+/* ==========================================================================
+   Responsive Media Queries (At the bottom to ensure cascade priority)
+   ========================================================================== */
+
+/* Tablet & iPad Portrait/Landscape */
+@media (max-width: 1024px) {
+  .app-container {
+    padding: 24px;
+  }
+  .app-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+  .left-panel {
+    order: 2;
+    width: 100%;
+  }
+  .right-panel {
+    order: 1;
+    width: 100%;
+  }
+}
+
+/* Mobile Phone / Small Devices */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 16px;
+  }
+  .app-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+  }
+  .logo-area {
+    justify-content: center;
+    width: 100%;
+  }
+  .connection-status {
+    width: 100%;
+    justify-content: center;
+    font-size: 10px;
+    padding: 6px 10px;
+  }
+  .card {
+    padding: 16px;
+  }
+  .card-header {
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .theater-card .card-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+  }
+  .theater-active-movie {
+    margin-left: 0;
+    max-width: 100%;
+    width: 100%;
+    text-align: center;
+    font-size: 10px;
+  }
+  .sync-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    text-align: center;
+    padding: 12px;
+  }
+  .sync-banner .btn {
+    margin-left: 0;
+    width: 100%;
+  }
+  .sync-msg {
+    text-align: center;
+    font-size: 11px;
+  }
+  .modal-content {
+    margin: 16px;
+    padding: 24px 16px;
+  }
+  .user-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .user-buttons .btn {
+    width: 100%;
+  }
 }
