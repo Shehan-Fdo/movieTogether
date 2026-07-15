@@ -1,0 +1,9 @@
+{
+  "name": "movietogether-root",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "npm install --prefix backend",
+    "start": "node backend/src/index.js"
+  }
+}
