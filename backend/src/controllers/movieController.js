@@ -11,7 +11,16 @@ export async function downloadMovie(req, res) {
   try {
     const { url, customName } = req.body || {};
     if (!url) {
-      return res.status(400).json({ error: 'Missing download URL' });
+      return res.status(400).json({ 
+        error: 'Missing download URL',
+        debug: {
+          method: req.method,
+          headers: req.headers,
+          bodyType: typeof req.body,
+          bodyRaw: req.body,
+          bodyKeys: req.body ? Object.keys(req.body) : []
+        }
+      });
     }
 
     const taskId = await startDownload(url, customName);

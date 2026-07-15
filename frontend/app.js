@@ -422,7 +422,9 @@ downloadForm.addEventListener('submit', async (e) => {
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error || 'Server error');
+      const error = new Error(err.error || 'Server error');
+      error.debugData = err.debug;
+      throw error;
     }
 
     urlInput.value = '';
@@ -433,8 +435,13 @@ downloadForm.addEventListener('submit', async (e) => {
     pollDownloadProgress();
 
   } catch (err) {
-    console.error(err);
-    alert('Failed to initiate download: ' + err.message);
+    console.error('Download error details:', err);
+    if (err.debugData) {
+      console.error('Debug details from server:', err.debugData);
+      alert('Failed to initiate download: ' + err.message + '\n\nDebug: ' + JSON.stringify(err.debugData, null, 2));
+    } else {
+      alert('Failed to initiate download: ' + err.message);
+    }
   } finally {
     downloadBtn.disabled = false;
     btnLoader.classList.add('hidden');
