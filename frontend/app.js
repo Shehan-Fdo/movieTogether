@@ -151,6 +151,15 @@ function connectWS() {
   };
 }
 
+function formatSpeed(megabits) {
+  if (megabits === null || megabits === undefined) return '';
+  const bytesPerSec = (megabits * 1000000) / 8;
+  if (bytesPerSec >= 1024 * 1024) {
+    return `${(bytesPerSec / (1024 * 1024)).toFixed(1)} MB/s`;
+  }
+  return `${(bytesPerSec / 1024).toFixed(0)} KB/s`;
+}
+
 function updateStatusBanner(users) {
   const isDuckOnline = users.some(u => u.username === 'Duck');
   const isVonOnline = users.some(u => u.username === 'Von');
@@ -158,7 +167,7 @@ function updateStatusBanner(users) {
   let statusHtml = '';
   users.forEach((user, idx) => {
     const pingText = user.latency !== null ? `${user.latency}ms` : 'connecting';
-    const speedText = user.speed !== null ? ` • ${user.speed} Mbps` : '';
+    const speedText = user.speed !== null ? ` • ${formatSpeed(user.speed)}` : '';
     const lagWarning = user.latency > 150 ? ' (Lagging)' : '';
     
     statusHtml += `<span style="font-weight: 700;">${user.username}</span> <span style="color: var(--text-secondary); font-size: 11px;">(${pingText}${speedText}${lagWarning})</span>`;
