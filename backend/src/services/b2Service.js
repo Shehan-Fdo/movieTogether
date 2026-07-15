@@ -155,6 +155,24 @@ class B2Service {
     });
     return data.authorizationToken;
   }
+
+  async deleteFileByName(fileName) {
+    const data = await this.callAPI('b2_list_file_names', {
+      bucketId: b2Config.bucketId,
+      startFileName: fileName,
+      maxFileCount: 1
+    });
+    
+    if (data.files && data.files.length > 0 && data.files[0].fileName === fileName) {
+      const fileId = data.files[0].fileId;
+      return this.callAPI('b2_delete_file_version', {
+        fileName,
+        fileId
+      });
+    } else {
+      throw new Error(`File ${fileName} not found in bucket`);
+    }
+  }
 }
 
 export const b2Service = new B2Service();

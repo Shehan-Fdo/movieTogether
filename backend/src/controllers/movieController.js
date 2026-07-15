@@ -69,3 +69,18 @@ export function cancelMovieDownload(req, res) {
   const success = cancelDownload(taskId);
   return res.json({ success });
 }
+
+export async function deleteMovie(req, res) {
+  try {
+    const { fileName } = req.params;
+    if (!fileName) {
+      return res.status(400).json({ error: 'Missing fileName parameter' });
+    }
+
+    await b2Service.deleteFileByName(fileName);
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Delete movie failed:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
