@@ -1,5 +1,5 @@
 import { b2Service } from '../services/b2Service.js';
-import { startDownload, activeDownloads } from '../services/downloadService.js';
+import { startDownload, activeDownloads, cancelDownload } from '../services/downloadService.js';
 import { b2Config } from '../config/b2.js';
 
 export async function downloadMovie(req, res) {
@@ -59,4 +59,13 @@ export async function playMovie(req, res) {
     console.error('Get play URL failed:', error);
     return res.status(500).json({ error: error.message });
   }
+}
+
+export function cancelMovieDownload(req, res) {
+  const { taskId } = req.body;
+  if (!taskId) {
+    return res.status(400).json({ error: 'Missing taskId parameter' });
+  }
+  const success = cancelDownload(taskId);
+  return res.json({ success });
 }

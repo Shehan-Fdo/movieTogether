@@ -3,6 +3,7 @@ import { Readable } from 'stream';
 import crypto from 'crypto';
 
 export const activeDownloads = new Map();
+const activeControllers = new Map();
 
 function cleanupDownloadHistory() {
   const maxHistory = 10;
@@ -33,6 +34,9 @@ export async function startDownload(url, customName = '') {
     completedAt: null
   };
 
+  const controller = new AbortController();
+  activeControllers.set(taskId, controller);
+
   activeDownloads.set(taskId, task);
 
   runDownloadTask(taskId).catch(err => {
@@ -48,7 +52,8 @@ async function runDownloadTask(taskId) {
   let fileId = null;
 
   try {
-    const response = await fetch(task.url);
+    const controller = activeControllers.get(taskId);
+    const response = await fetch(task.url, { signal: controller?.signal });
     if (!response.ok) {
       throw new Error(`Failed to fetch remote URL: ${response.statusText} (${response.status})`);
     }
@@ -116,8 +121,13 @@ async function runDownloadTask(taskId) {
 
   } catch (error) {
     console.error(`Task ${taskId} failed:`, error);
-    task.status = 'failed';
-    task.error = error.message;
+    if (error.name === 'AbortError') {
+      task.status = 'cancelled';
+      task.error = 'Cancelled by user';
+    } else {
+      task.status = 'failed';
+      task.error = error.message;
+    }
     task.completedAt = new Date().toISOString();
 
     if (fileId) {
@@ -129,6 +139,7 @@ async function runDownloadTask(taskId) {
       }
     }
   } finally {
+    activeControllers.delete(taskId);
     cleanupDownloadHistory();
   }
 }
@@ -157,4 +168,13 @@ function getFilenameFromHeadersOrUrl(url, headers) {
     // ignore
   }
   return 'movie.mp4';
+}
+
+export function cancelDownload(taskId) {
+  const controller = activeControllers.get(taskId);
+  if (controller) {
+    controller.abort();
+    return true;
+  }
+  return false;
 }

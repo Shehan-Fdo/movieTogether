@@ -313,6 +313,9 @@ async function pollDownloadProgress() {
           statusText = `${formatBytes(task.bytesTransferred)} / ${task.bytesTotal > 0 ? formatBytes(task.bytesTotal) : 'Unknown'}`;
         } else if (task.status === 'completed') statusText = 'Completed';
         else if (task.status === 'failed') statusText = `Failed: ${task.error}`;
+        else if (task.status === 'cancelled') statusText = 'Cancelled';
+
+        const isPending = task.status === 'connecting' || task.status === 'downloading';
 
         item.innerHTML = `
           <div class="progress-item-info">
@@ -322,11 +325,38 @@ async function pollDownloadProgress() {
           <div class="progress-bar-bg">
             <div class="progress-bar-fill" style="width: ${task.progress}%"></div>
           </div>
-          <div class="progress-item-status">
-            <span>Status: ${task.status.toUpperCase()}</span>
-            <span>${statusText}</span>
+          <div class="progress-item-status" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 8px;">
+              <span>Status: ${task.status.toUpperCase()}</span>
+              <span>•</span>
+              <span>${statusText}</span>
+            </div>
+            ${isPending ? `<button class="btn btn-secondary btn-sm btn-cancel" data-id="${task.id}" style="padding: 2px 6px; font-size: 10px; border-radius: 4px; color: var(--danger); border-color: rgba(255, 74, 90, 0.2);">Cancel</button>` : ''}
           </div>
         `;
+
+        if (isPending) {
+          const cancelBtn = item.querySelector('.btn-cancel');
+          cancelBtn.addEventListener('click', async () => {
+            if (confirm('Cancel this download?')) {
+              try {
+                cancelBtn.disabled = true;
+                cancelBtn.textContent = '...';
+                const res = await fetch('/api/movies/cancel-download', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ taskId: task.id })
+                });
+                if (!res.ok) throw new Error('Failed to cancel');
+              } catch (err) {
+                console.error(err);
+                alert('Cancel failed: ' + err.message);
+                cancelBtn.disabled = false;
+                cancelBtn.textContent = 'Cancel';
+              }
+            }
+          });
+        }
         progressList.appendChild(item);
       });
 
