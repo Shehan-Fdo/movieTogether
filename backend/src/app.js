@@ -38,7 +38,7 @@ const frontendPath = path.join(__dirname, '../../frontend');
 app.use(express.static(frontendPath));
 
 // Fallback all other routes to index.html
-app.get('*', (req, res) => {
+app.get('*any', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
