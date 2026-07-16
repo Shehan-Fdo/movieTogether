@@ -10,6 +10,7 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 const clients = new Map();
 let currentMovie = null;
 const bufferingUsers = new Set();
+const focusLostUsers = new Set();
 
 wss.on('connection', (ws) => {
   const clientId = crypto.randomUUID();
@@ -47,6 +48,20 @@ wss.on('connection', (ws) => {
             currentMeta.speed = data.speed;
           }
           broadcastUserList();
+          break;
+
+        case 'focus-lost':
+          focusLostUsers.add(data.username);
+          console.log(`User ${data.username} lost focus. Out of focus:`, Array.from(focusLostUsers));
+          broadcast({ type: 'pause-for-focus', username: data.username });
+          break;
+
+        case 'focus-gained':
+          focusLostUsers.delete(data.username);
+          console.log(`User ${data.username} regained focus. Remaining:`, Array.from(focusLostUsers));
+          if (focusLostUsers.size === 0) {
+            broadcast({ type: 'resume-from-focus' });
+          }
           break;
 
         case 'buffering':
@@ -114,6 +129,11 @@ wss.on('connection', (ws) => {
       bufferingUsers.delete(meta.username);
       if (bufferingUsers.size === 0) {
         broadcast({ type: 'resume-from-buffer' });
+      }
+
+      focusLostUsers.delete(meta.username);
+      if (focusLostUsers.size === 0) {
+        broadcast({ type: 'resume-from-focus' });
       }
     }
     clients.delete(ws);

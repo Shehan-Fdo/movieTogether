@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { startDownload, activeDownloads, cancelDownload } from '../services/downloadService.js';
+import { convertToVtt } from '../services/subtitleService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,13 +14,11 @@ export async function downloadMovie(req, res) {
     let url = req.body?.url;
     let customName = req.body?.customName;
 
-    // Fallback 1: Query parameters
     if (!url && req.query.url) {
       url = decodeURIComponent(req.query.url);
       customName = req.query.customName ? decodeURIComponent(req.query.customName) : '';
     }
 
-    // Fallback 2: Custom headers
     if (!url && req.headers['x-download-url']) {
       url = decodeURIComponent(req.headers['x-download-url']);
       customName = req.headers['x-custom-name'] ? decodeURIComponent(req.headers['x-custom-name']) : '';
@@ -52,21 +51,25 @@ export async function listMovies(req, res) {
     const movies = [];
 
     for (const file of files) {
-      if (file === '.gitkeep') continue;
+      if (file === '.gitkeep' || file.endsWith('.vtt')) continue;
 
       const filePath = path.join(moviesDir, file);
       const stats = await fs.promises.stat(filePath);
       
       if (stats.isFile()) {
+        const baseName = path.basename(file, path.extname(file));
+        const subFile = `${baseName}.vtt`;
+        const hasSubtitles = files.includes(subFile) && fs.existsSync(path.join(moviesDir, subFile));
+
         movies.push({
           fileName: file,
           size: stats.size,
-          uploadedAt: stats.mtime.toISOString()
+          uploadedAt: stats.mtime.toISOString(),
+          hasSubtitles
         });
       }
     }
 
-    // Sort by upload date descending
     movies.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
 
     return res.json(movies);
@@ -92,9 +95,18 @@ export async function playMovie(req, res) {
       return res.status(404).json({ error: 'Movie file not found' });
     }
 
-    // Return the local streaming endpoint URL
     const playUrl = `/api/movies/stream/${encodeURIComponent(fileName)}`;
-    return res.json({ playUrl });
+    
+    // Check if subtitle track exists
+    const baseName = path.basename(fileName, path.extname(fileName));
+    const subFileName = `${baseName}.vtt`;
+    const subFilePath = path.join(moviesDir, subFileName);
+    let subtitlesUrl = null;
+    if (fs.existsSync(subFilePath)) {
+      subtitlesUrl = `/api/movies/stream/${encodeURIComponent(subFileName)}`;
+    }
+
+    return res.json({ playUrl, subtitlesUrl });
   } catch (error) {
     console.error('Get play URL failed:', error);
     return res.status(500).json({ error: error.message });
@@ -124,6 +136,15 @@ export async function deleteMovie(req, res) {
 
     if (fs.existsSync(filePath)) {
       await fs.promises.unlink(filePath);
+      
+      // Also delete subtitles if they exist
+      const baseName = path.basename(fileName, path.extname(fileName));
+      const subFileName = `${baseName}.vtt`;
+      const subFilePath = path.join(moviesDir, subFileName);
+      if (fs.existsSync(subFilePath)) {
+        await fs.promises.unlink(subFilePath);
+      }
+
       return res.json({ success: true });
     } else {
       return res.status(404).json({ error: 'File not found' });
@@ -150,12 +171,44 @@ export function streamMovie(req, res) {
       return res.status(404).json({ error: 'File not found' });
     }
 
-    // res.sendFile handles Range requests natively
     return res.sendFile(filePath);
   } catch (error) {
     console.error('Streaming file failed:', error);
     if (!res.headersSent) {
       return res.status(500).json({ error: error.message });
     }
+  }
+}
+
+export async function uploadSubtitles(req, res) {
+  try {
+    const { fileName, subtitleText, originalExtension } = req.body;
+    if (!fileName || !subtitleText || !originalExtension) {
+      return res.status(400).json({ error: 'Missing required parameters: fileName, subtitleText, originalExtension' });
+    }
+
+    const moviePath = path.resolve(path.join(moviesDir, fileName));
+    if (!moviePath.startsWith(moviesDir)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!fs.existsSync(moviePath)) {
+      return res.status(404).json({ error: 'Associated movie file not found' });
+    }
+
+    const baseName = path.basename(fileName, path.extname(fileName));
+    const subtitleFileName = `${baseName}.vtt`;
+    const subtitlePath = path.join(moviesDir, subtitleFileName);
+
+    // Convert contents to VTT format using subtitleService
+    const vttContent = convertToVtt(Buffer.from(subtitleText, 'utf8'), originalExtension);
+
+    // Save VTT subtitles file to disk
+    await fs.promises.writeFile(subtitlePath, vttContent, 'utf8');
+
+    return res.json({ success: true, subtitleFileName });
+  } catch (error) {
+    console.error('Subtitle upload failed:', error);
+    return res.status(500).json({ error: error.message });
   }
 }

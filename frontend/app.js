@@ -103,6 +103,26 @@ function connectWS() {
           sendWS({ type: 'latency-report', username: currentUser, latency, speed });
           break;
 
+        case 'pause-for-focus':
+          console.log(`Focus lock from: ${data.username}`);
+          isSyncing = true;
+          sharedVideo.pause();
+          setTimeout(() => { isSyncing = false; }, 250);
+          showSyncMessage(`Waiting for ${data.username} to return...`);
+          break;
+
+        case 'resume-from-focus':
+          console.log('Focus lock resolved');
+          isSyncing = true;
+          sharedVideo.play().then(() => {
+            setTimeout(() => { isSyncing = false; }, 250);
+          }).catch(e => {
+            console.warn('Playback block:', e);
+            isSyncing = false;
+          });
+          showSyncMessage('Resumed');
+          break;
+
         case 'pause-for-buffer':
           console.log(`Buffering lock from: ${data.username}`);
           isSyncing = true;
@@ -393,6 +413,21 @@ async function loadMovie(fileName) {
     sharedVideo.classList.remove('hidden');
     syncBanner.classList.remove('hidden');
 
+    // Remove old tracks
+    const oldTracks = sharedVideo.querySelectorAll('track');
+    oldTracks.forEach(t => t.remove());
+
+    // Add new subtitle track if available
+    if (data.subtitlesUrl) {
+      const track = document.createElement('track');
+      track.kind = 'subtitles';
+      track.label = 'Subtitles';
+      track.srclang = 'en';
+      track.src = data.subtitlesUrl.startsWith('http') ? data.subtitlesUrl : getBackendUrl(data.subtitlesUrl);
+      track.default = true;
+      sharedVideo.appendChild(track);
+    }
+
     sharedVideo.src = data.playUrl.startsWith('http') ? data.playUrl : getBackendUrl(data.playUrl);
     
     if (!player) {
@@ -604,6 +639,88 @@ function selectUser(user) {
   refreshLibraryBtn.addEventListener('click', loadLibrary);
   pollDownloadProgress();
 }
+
+const subUploadInput = document.getElementById('sub-upload');
+if (subUploadInput) {
+  subUploadInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !activeFileName) {
+      alert('Please select a movie first!');
+      e.target.value = '';
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = evt.target.result;
+      const ext = '.' + file.name.split('.').pop().toLowerCase();
+      
+      try {
+        showSyncMessage('Uploading subtitles...');
+        const uploadBtn = document.querySelector('.sub-upload-label');
+        if (uploadBtn) {
+          uploadBtn.style.opacity = '0.5';
+          uploadBtn.style.pointerEvents = 'none';
+        }
+        
+        const res = await fetch(getBackendUrl('/api/movies/subtitles'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: activeFileName,
+            subtitleText: text,
+            originalExtension: ext
+          })
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Failed to upload subtitles');
+        }
+        
+        showSyncMessage('Subtitles active');
+        await loadMovie(activeFileName);
+      } catch (err) {
+        alert('Error uploading subtitles: ' + err.message);
+      } finally {
+        const uploadBtn = document.querySelector('.sub-upload-label');
+        if (uploadBtn) {
+          uploadBtn.style.opacity = '1';
+          uploadBtn.style.pointerEvents = 'auto';
+        }
+        e.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+// --- Focus Guard Sync ---
+let isPageFocused = true;
+
+function handleFocusChange(focused) {
+  if (!currentUser) return; // Wait until joined
+  if (isPageFocused === focused) return; // Prevent duplicate triggers
+  isPageFocused = focused;
+
+  if (focused) {
+    sendWS({ type: 'focus-gained', username: currentUser });
+  } else {
+    sendWS({ type: 'focus-lost', username: currentUser });
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  handleFocusChange(document.visibilityState === 'visible');
+});
+
+window.addEventListener('focus', () => {
+  handleFocusChange(true);
+});
+
+window.addEventListener('blur', () => {
+  handleFocusChange(false);
+});
 
 const storedUser = localStorage.getItem('movieTogether_user');
 if (storedUser && (storedUser === 'Duck' || storedUser === 'Von')) {

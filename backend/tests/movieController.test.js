@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { listMovies, playMovie, deleteMovie } from '../src/controllers/movieController.js';
+import { listMovies, playMovie, deleteMovie, uploadSubtitles } from '../src/controllers/movieController.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,6 +56,39 @@ test('Movie controller local filesystem operations', async (t) => {
     await playMovie(req, res);
     assert.ok(responseData);
     assert.strictEqual(responseData.playUrl, `/api/movies/stream/${encodeURIComponent(testFileName)}`);
+  });
+
+  await t.test('uploadSubtitles converts SRT to VTT and saves', async () => {
+    let responseData = null;
+    const srtText = `1\n00:01:20,000 --> 00:01:23,000\nHello World\n`;
+    const req = {
+      body: {
+        fileName: testFileName,
+        subtitleText: srtText,
+        originalExtension: '.srt'
+      }
+    };
+    const res = {
+      json: (data) => {
+        responseData = data;
+        return res;
+      },
+      status: (code) => {
+        return res;
+      }
+    };
+
+    await uploadSubtitles(req, res);
+    assert.ok(responseData);
+    assert.strictEqual(responseData.success, true);
+    
+    const subPath = path.join(moviesDir, `${path.basename(testFileName, path.extname(testFileName))}.vtt`);
+    assert.ok(fs.existsSync(subPath));
+    const savedContent = fs.readFileSync(subPath, 'utf8');
+    assert.ok(savedContent.startsWith('WEBVTT'));
+    assert.ok(savedContent.includes('00:01:20.000 --> 00:01:23.000'));
+    
+    fs.unlinkSync(subPath);
   });
 
   await t.test('deleteMovie unlinks the file', async () => {
