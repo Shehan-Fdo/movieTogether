@@ -1,13 +1,14 @@
-import { b2Service } from '../services/b2Service.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { startDownload, activeDownloads, cancelDownload } from '../services/downloadService.js';
-import { b2Config } from '../config/b2.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const moviesDir = path.resolve(path.join(__dirname, '../../data/movies'));
 
 export async function downloadMovie(req, res) {
   console.log('--- downloadMovie request received ---');
-  console.log('Method:', req.method);
-  console.log('Headers:', req.headers);
-  console.log('Body type:', typeof req.body);
-  console.log('Body:', req.body);
   try {
     let url = req.body?.url;
     let customName = req.body?.customName;
@@ -16,27 +17,16 @@ export async function downloadMovie(req, res) {
     if (!url && req.query.url) {
       url = decodeURIComponent(req.query.url);
       customName = req.query.customName ? decodeURIComponent(req.query.customName) : '';
-      console.log('Resolved url from query parameters:', url);
     }
 
     // Fallback 2: Custom headers
     if (!url && req.headers['x-download-url']) {
       url = decodeURIComponent(req.headers['x-download-url']);
       customName = req.headers['x-custom-name'] ? decodeURIComponent(req.headers['x-custom-name']) : '';
-      console.log('Resolved url from custom headers:', url);
     }
 
     if (!url) {
-      return res.status(400).json({ 
-        error: 'Missing download URL',
-        debug: {
-          method: req.method,
-          headers: req.headers,
-          bodyType: typeof req.body,
-          bodyRaw: req.body,
-          bodyKeys: req.body ? Object.keys(req.body) : []
-        }
-      });
+      return res.status(400).json({ error: 'Missing download URL' });
     }
 
     const taskId = await startDownload(url, customName);
@@ -54,15 +44,31 @@ export function getDownloads(req, res) {
 
 export async function listMovies(req, res) {
   try {
-    const files = await b2Service.listFiles();
-    // Keep only completed video uploads and map properties
-    const movies = files
-      .filter(f => f.action === 'upload')
-      .map(f => ({
-        fileName: f.fileName,
-        size: f.contentLength,
-        uploadedAt: new Date(f.uploadTimestamp).toISOString()
-      }));
+    if (!fs.existsSync(moviesDir)) {
+      return res.json([]);
+    }
+
+    const files = await fs.promises.readdir(moviesDir);
+    const movies = [];
+
+    for (const file of files) {
+      if (file === '.gitkeep') continue;
+
+      const filePath = path.join(moviesDir, file);
+      const stats = await fs.promises.stat(filePath);
+      
+      if (stats.isFile()) {
+        movies.push({
+          fileName: file,
+          size: stats.size,
+          uploadedAt: stats.mtime.toISOString()
+        });
+      }
+    }
+
+    // Sort by upload date descending
+    movies.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+
     return res.json(movies);
   } catch (error) {
     console.error('List movies failed:', error);
@@ -77,13 +83,17 @@ export async function playMovie(req, res) {
       return res.status(400).json({ error: 'Missing fileName parameter' });
     }
 
-    const { downloadUrl } = await b2Service.authorize();
-    const token = await b2Service.getDownloadAuthorization(fileName);
-    
-    // Encode parts of filename path properly
-    const encodedFileName = fileName.split('/').map(encodeURIComponent).join('/');
-    const playUrl = `${downloadUrl}/file/${b2Config.bucketName}/${encodedFileName}?Authorization=${token}`;
-    
+    const filePath = path.resolve(path.join(moviesDir, fileName));
+    if (!filePath.startsWith(moviesDir)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Movie file not found' });
+    }
+
+    // Return the local streaming endpoint URL
+    const playUrl = `/api/movies/stream/${encodeURIComponent(fileName)}`;
     return res.json({ playUrl });
   } catch (error) {
     console.error('Get play URL failed:', error);
@@ -107,10 +117,45 @@ export async function deleteMovie(req, res) {
       return res.status(400).json({ error: 'Missing fileName parameter' });
     }
 
-    await b2Service.deleteFileByName(fileName);
-    return res.json({ success: true });
+    const filePath = path.resolve(path.join(moviesDir, fileName));
+    if (!filePath.startsWith(moviesDir)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (fs.existsSync(filePath)) {
+      await fs.promises.unlink(filePath);
+      return res.json({ success: true });
+    } else {
+      return res.status(404).json({ error: 'File not found' });
+    }
   } catch (error) {
     console.error('Delete movie failed:', error);
     return res.status(500).json({ error: error.message });
+  }
+}
+
+export function streamMovie(req, res) {
+  try {
+    const { fileName } = req.params;
+    if (!fileName) {
+      return res.status(400).json({ error: 'Missing fileName parameter' });
+    }
+
+    const filePath = path.resolve(path.join(moviesDir, fileName));
+    if (!filePath.startsWith(moviesDir)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // res.sendFile handles Range requests natively
+    return res.sendFile(filePath);
+  } catch (error) {
+    console.error('Streaming file failed:', error);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: error.message });
+    }
   }
 }

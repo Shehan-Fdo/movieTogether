@@ -1,3 +1,26 @@
+// Set this to your VPS backend URL (e.g. 'https://api.yourdomain.com') when hosting frontend elsewhere.
+// Leave as empty string to fallback to the current page origin.
+const BACKEND_URL = '';
+
+function getBackendUrl(path) {
+  if (BACKEND_URL) {
+    const trimmedBackend = BACKEND_URL.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+    const trimmedPath = path.startsWith('/') ? path : '/' + path;
+    return `${trimmedBackend}${trimmedPath}`;
+  }
+  return path;
+}
+
+function getWsUrl() {
+  if (BACKEND_URL) {
+    const url = new URL(BACKEND_URL);
+    const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${url.host}/ws`;
+  }
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}/ws`;
+}
+
 let ws = null;
 let activeFileName = null;
 let isSyncing = false;
@@ -26,8 +49,7 @@ const resyncBtn = document.getElementById('resync-btn');
 
 // --- WebSockets Connection ---
 function connectWS() {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${protocol}//${window.location.host}/ws`;
+  const wsUrl = getWsUrl();
   
   ws = new WebSocket(wsUrl);
 
@@ -258,7 +280,7 @@ resyncBtn.addEventListener('click', () => {
 // --- Movie Library Management ---
 async function loadLibrary() {
   try {
-    const res = await fetch('/api/movies');
+    const res = await fetch(getBackendUrl('/api/movies'));
     if (!res.ok) throw new Error('Failed to fetch library');
     
     const movies = await res.json();
@@ -319,7 +341,7 @@ async function loadLibrary() {
         if (!ok) return;
 
         try {
-          const deleteRes = await fetch(`/api/movies/${encodeURIComponent(movie.fileName)}`, {
+          const deleteRes = await fetch(getBackendUrl(`/api/movies/${encodeURIComponent(movie.fileName)}`), {
             method: 'DELETE'
           });
           if (!deleteRes.ok) throw new Error('Failed to delete movie');
@@ -362,7 +384,7 @@ async function loadMovie(fileName) {
     activeMovieTitle.textContent = fileName;
     activeFileName = fileName;
 
-    const res = await fetch(`/api/movies/play?fileName=${encodeURIComponent(fileName)}`);
+    const res = await fetch(getBackendUrl(`/api/movies/play?fileName=${encodeURIComponent(fileName)}`));
     if (!res.ok) throw new Error('Failed to retrieve streaming link');
     
     const data = await res.json();
@@ -371,7 +393,7 @@ async function loadMovie(fileName) {
     sharedVideo.classList.remove('hidden');
     syncBanner.classList.remove('hidden');
 
-    sharedVideo.src = data.playUrl;
+    sharedVideo.src = data.playUrl.startsWith('http') ? data.playUrl : getBackendUrl(data.playUrl);
     
     if (!player) {
       player = new Plyr(sharedVideo, {
@@ -415,7 +437,7 @@ downloadForm.addEventListener('submit', async (e) => {
     btnLoader.classList.remove('hidden');
 
     const queryParams = `?url=${encodeURIComponent(url)}&customName=${encodeURIComponent(customName)}`;
-    const res = await fetch(`/api/movies/download${queryParams}`, {
+    const res = await fetch(getBackendUrl(`/api/movies/download${queryParams}`), {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -458,7 +480,7 @@ async function pollDownloadProgress() {
 
   activeTasksPollInterval = setInterval(async () => {
     try {
-      const res = await fetch('/api/movies/progress');
+      const res = await fetch(getBackendUrl('/api/movies/progress'));
       if (!res.ok) throw new Error('Polling failed');
 
       const tasks = await res.json();
@@ -510,7 +532,7 @@ async function pollDownloadProgress() {
               try {
                 cancelBtn.disabled = true;
                 cancelBtn.textContent = '...';
-                const res = await fetch('/api/movies/cancel-download', {
+                const res = await fetch(getBackendUrl('/api/movies/cancel-download'), {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ taskId: task.id })

@@ -1,6 +1,17 @@
-import { b2Service } from './b2Service.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { Readable } from 'stream';
 import crypto from 'crypto';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const moviesDir = path.join(__dirname, '../../data/movies');
+
+// Ensure movies directory exists
+if (!fs.existsSync(moviesDir)) {
+  fs.mkdirSync(moviesDir, { recursive: true });
+}
 
 export const activeDownloads = new Map();
 const activeControllers = new Map();
@@ -49,7 +60,8 @@ export async function startDownload(url, customName = '') {
 async function runDownloadTask(taskId) {
   const task = activeDownloads.get(taskId);
   if (!task) return;
-  let fileId = null;
+  let filePath = null;
+  let writeStream = null;
 
   try {
     const controller = activeControllers.get(taskId);
@@ -66,38 +78,20 @@ async function runDownloadTask(taskId) {
     task.filename = resolvedName;
     task.status = 'downloading';
 
-    await b2Service.authorize();
-    fileId = await b2Service.startLargeFile(resolvedName);
-    console.log(`B2 Large File started. fileId: ${fileId}`);
-
-    const partSize = 20 * 1024 * 1024; // 20 MB
-    let buffers = [];
-    let accumulatedLength = 0;
-    let partNumber = 1;
-    const parts = [];
+    filePath = path.join(moviesDir, resolvedName);
+    writeStream = fs.createWriteStream(filePath);
 
     const stream = Readable.fromWeb(response.body);
 
-    const uploadPromises = [];
-    const maxConcurrentUploads = 3;
-    let uploadError = null;
-
-    const abortPromise = controller ? new Promise((_, reject) => {
-      if (controller.signal.aborted) {
-        reject(new DOMException('The operation was aborted.', 'AbortError'));
-      }
-      controller.signal.addEventListener('abort', () => {
-        reject(new DOMException('The operation was aborted.', 'AbortError'));
-      });
-    }) : null;
-
     for await (const chunk of stream) {
-      if (uploadError) {
-        throw uploadError;
+      if (controller?.signal.aborted) {
+        throw new DOMException('The operation was aborted.', 'AbortError');
       }
 
-      buffers.push(chunk);
-      accumulatedLength += chunk.length;
+      const canWrite = writeStream.write(chunk);
+      if (!canWrite) {
+        await new Promise(resolve => writeStream.once('drain', resolve));
+      }
 
       task.bytesTransferred += chunk.length;
       if (bytesTotal > 0) {
@@ -105,92 +99,14 @@ async function runDownloadTask(taskId) {
       } else {
         task.progress = 0;
       }
-
-      if (accumulatedLength >= partSize) {
-        const partBuffer = Buffer.concat(buffers, accumulatedLength);
-        buffers = [];
-        accumulatedLength = 0;
-
-        const currentPart = partNumber;
-        partNumber++;
-
-        // Apply backpressure if we exceed max concurrent uploads
-        while (uploadPromises.filter(p => !p.resolved).length >= maxConcurrentUploads) {
-          if (uploadError) throw uploadError;
-          if (controller && controller.signal.aborted) {
-            throw new DOMException('The operation was aborted.', 'AbortError');
-          }
-          task.status = 'uploading (backpressure)';
-          console.log(`Backpressure triggered. Waiting for active B2 uploads to drain...`);
-          
-          const activePromises = uploadPromises.filter(p => !p.resolved).map(p => p.promise);
-          if (abortPromise) {
-            activePromises.push(abortPromise);
-          }
-          await Promise.race(activePromises);
-        }
-
-        task.status = 'downloading';
-        console.log(`Starting background upload for Part ${currentPart}...`);
-        
-        const uploadObj = { resolved: false };
-        const promise = (async () => {
-          try {
-            const { uploadUrl, authorizationToken } = await b2Service.getUploadPartUrl(fileId);
-            const result = await b2Service.uploadPart(uploadUrl, authorizationToken, currentPart, partBuffer);
-            parts.push(result);
-          } catch (err) {
-            uploadError = err;
-          } finally {
-            uploadObj.resolved = true;
-          }
-        })();
-        uploadObj.promise = promise;
-        uploadPromises.push(uploadObj);
-      }
     }
 
-    if (accumulatedLength > 0) {
-      if (uploadError) throw uploadError;
-      const partBuffer = Buffer.concat(buffers, accumulatedLength);
-      const currentPart = partNumber;
-      
-      console.log(`Starting background upload for Final Part ${currentPart}...`);
-      const uploadObj = { resolved: false };
-      const promise = (async () => {
-        try {
-          const { uploadUrl, authorizationToken } = await b2Service.getUploadPartUrl(fileId);
-          const result = await b2Service.uploadPart(uploadUrl, authorizationToken, currentPart, partBuffer);
-          parts.push(result);
-        } catch (err) {
-          uploadError = err;
-        } finally {
-          uploadObj.resolved = true;
-        }
-      })();
-      uploadObj.promise = promise;
-      uploadPromises.push(uploadObj);
-    }
-
-    if (uploadPromises.length > 0) {
-      task.status = 'uploading remaining parts';
-      console.log('Waiting for all background B2 uploads to finish...');
-      
-      const allUploads = Promise.all(uploadPromises.map(p => p.promise));
-      if (abortPromise) {
-        await Promise.race([allUploads, abortPromise]);
-      } else {
-        await allUploads;
-      }
-    }
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    console.log('Finishing B2 Large File...');
-    const partSha1s = parts.sort((a, b) => a.partNumber - b.partNumber).map(p => p.contentSha1);
-    await b2Service.finishLargeFile(fileId, partSha1s);
+    await new Promise((resolve, reject) => {
+      writeStream.end(err => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
 
     task.status = 'completed';
     task.progress = 100;
@@ -199,6 +115,18 @@ async function runDownloadTask(taskId) {
 
   } catch (error) {
     console.error(`Task ${taskId} failed:`, error);
+    if (writeStream) {
+      writeStream.destroy();
+    }
+    
+    if (filePath && fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch (unlinkErr) {
+        console.error('Error deleting partial file:', unlinkErr);
+      }
+    }
+
     if (error.name === 'AbortError') {
       task.status = 'cancelled';
       task.error = 'Cancelled by user';
@@ -207,15 +135,6 @@ async function runDownloadTask(taskId) {
       task.error = error.message;
     }
     task.completedAt = new Date().toISOString();
-
-    if (fileId) {
-      console.log(`Cancelling B2 Large File: ${fileId}...`);
-      try {
-        await b2Service.cancelLargeFile(fileId);
-      } catch (cancelErr) {
-        console.error('Error cancelling B2 large file:', cancelErr);
-      }
-    }
   } finally {
     activeControllers.delete(taskId);
     cleanupDownloadHistory();
