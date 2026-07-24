@@ -927,3 +927,128 @@ body {
   padding-top: 6px;
 }
 
+/* In-Player Floating HUD Overlay (Visible in Pop-out, Fullscreen & Normal Mode) */
+.player-hud-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 14px;
+  z-index: 15;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: opacity 0.3s ease;
+}
+
+.hud-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.hud-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #10b981;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+  animation: pulse-sync 2s infinite ease-in-out;
+}
+
+.hud-dot.syncing {
+  background-color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.8);
+}
+
+.hud-dot.offline {
+  background-color: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+}
+
+.hud-sync-msg {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.hud-users-status {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.hud-resync-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.hud-resync-btn:hover {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+/* High-Contrast Controls Backdrop & Timeline Bar Visibility Overrides */
+.plyr__controls {
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.6) 35%, rgba(0, 0, 0, 0.95) 100%) !important;
+  padding: 16px 14px 10px !important;
+}
+
+.plyr__progress input[type="range"] {
+  height: 6px !important;
+  cursor: pointer;
+}
+
+.plyr--full-ui input[type=range] {
+  color: #ffffff !important;
+}
+
+.plyr__progress__buffer {
+  background: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Subtitle Track Positioning & Black Bar Letterboxing Contrast Fix */
+.plyr__cues {
+  bottom: 60px !important;
+  font-size: clamp(14px, 2.5vw, 22px) !important;
+  line-height: 1.4 !important;
+}
+
+::cue {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  color: #ffffff !important;
+  font-family: 'Outfit', -apple-system, sans-serif !important;
+  font-weight: 600 !important;
+  padding: 3px 8px !important;
+  border-radius: 4px !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 3px #000000 !important;
+}
+
+

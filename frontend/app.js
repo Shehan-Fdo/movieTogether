@@ -52,6 +52,11 @@ const theaterPlaceholder = document.getElementById('theater-placeholder');
 const popoutBtn = document.getElementById('popout-btn');
 const pipBtn = document.getElementById('pip-btn');
 const dockPlayerBtn = document.getElementById('dock-player-btn');
+const playerHudOverlay = document.getElementById('player-hud-overlay');
+const hudDot = document.getElementById('hud-dot');
+const hudSyncMsg = document.getElementById('hud-sync-msg');
+const hudUsersStatus = document.getElementById('hud-users-status');
+const hudResyncBtn = document.getElementById('hud-resync-btn');
 
 // --- WebSockets Connection ---
 function connectWS() {
@@ -229,8 +234,21 @@ function updateStatusBanner(users) {
   if (isDuckOnline && isVonOnline) {
     const hasLag = users.some(u => u.latency > 150);
     wsStatusDot.className = hasLag ? 'status-dot syncing' : 'status-dot online';
+    if (hudDot) hudDot.className = hasLag ? 'hud-dot syncing' : 'hud-dot';
   } else {
     wsStatusDot.className = 'status-dot syncing';
+    if (hudDot) hudDot.className = 'hud-dot syncing';
+  }
+
+  if (hudUsersStatus) {
+    let hudHtml = '';
+    users.forEach((user, idx) => {
+      const pingText = user.latency !== null ? `${user.latency}ms` : 'conn';
+      const lagWarning = user.latency > 150 ? ' ⚠️' : '';
+      hudHtml += `<span style="font-weight:700;">${user.username}</span> (${pingText}${lagWarning})`;
+      if (idx < users.length - 1) hudHtml += ' | ';
+    });
+    hudUsersStatus.innerHTML = hudHtml;
   }
 }
 
@@ -243,11 +261,14 @@ function sendWS(messageObj) {
 function showSyncMessage(text) {
   syncBanner.classList.remove('hidden');
   syncMsg.textContent = text;
+  if (hudSyncMsg) hudSyncMsg.textContent = text;
+  if (playerHudOverlay && activeFileName) playerHudOverlay.classList.remove('hidden');
   
   // Fade out message after 3 seconds if playing
   setTimeout(() => {
     if (text === syncMsg.textContent) {
       syncMsg.textContent = 'Synced';
+      if (hudSyncMsg) hudSyncMsg.textContent = 'Synced';
     }
   }, 3000);
 }
@@ -293,7 +314,7 @@ sharedVideo.addEventListener('playing', () => {
 });
 
 // Force sync local state to others
-resyncBtn.addEventListener('click', () => {
+const handleForceSync = () => {
   if (!activeFileName) return;
   sendWS({
     type: 'play',
@@ -301,7 +322,12 @@ resyncBtn.addEventListener('click', () => {
     fileName: activeFileName
   });
   showSyncMessage('Forced sync broadcast');
-});
+};
+
+resyncBtn.addEventListener('click', handleForceSync);
+if (hudResyncBtn) {
+  hudResyncBtn.addEventListener('click', handleForceSync);
+}
 
 // --- Movie Library Management ---
 async function loadLibrary() {
@@ -378,6 +404,7 @@ async function loadLibrary() {
             activeFileName = null;
             sharedVideo.src = '';
             sharedVideo.classList.add('hidden');
+            if (playerHudOverlay) playerHudOverlay.classList.add('hidden');
             playerPlaceholder.classList.remove('hidden');
             syncBanner.classList.add('hidden');
             if (player) {
@@ -418,6 +445,7 @@ async function loadMovie(fileName) {
     playerPlaceholder.classList.add('hidden');
     sharedVideo.classList.remove('hidden');
     syncBanner.classList.remove('hidden');
+    if (playerHudOverlay) playerHudOverlay.classList.remove('hidden');
 
     // Remove old tracks
     const oldTracks = sharedVideo.querySelectorAll('track');
