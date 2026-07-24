@@ -46,6 +46,12 @@ const sharedVideo = document.getElementById('shared-video');
 const syncBanner = document.getElementById('sync-banner');
 const syncMsg = document.getElementById('sync-msg');
 const resyncBtn = document.getElementById('resync-btn');
+const theaterCard = document.getElementById('theater-card');
+const theaterHeader = document.getElementById('theater-header');
+const theaterPlaceholder = document.getElementById('theater-placeholder');
+const popoutBtn = document.getElementById('popout-btn');
+const pipBtn = document.getElementById('pip-btn');
+const dockPlayerBtn = document.getElementById('dock-player-btn');
 
 // --- WebSockets Connection ---
 function connectWS() {
@@ -721,6 +727,118 @@ window.addEventListener('focus', () => {
 window.addEventListener('blur', () => {
   handleFocusChange(false);
 });
+
+// --- Pop-out Floating Player & Dragging Logic ---
+function togglePopoutPlayer(forceState) {
+  if (!theaterCard) return;
+  const isCurrentlyFloating = theaterCard.classList.contains('is-floating');
+  const shouldFloat = forceState !== undefined ? forceState : !isCurrentlyFloating;
+
+  if (shouldFloat) {
+    theaterCard.classList.add('is-floating');
+    if (theaterPlaceholder) theaterPlaceholder.classList.remove('hidden');
+    if (popoutBtn) popoutBtn.classList.add('active');
+    showSyncMessage('Popped out player window');
+  } else {
+    theaterCard.classList.remove('is-floating');
+    if (theaterPlaceholder) theaterPlaceholder.classList.add('hidden');
+    if (popoutBtn) popoutBtn.classList.remove('active');
+    
+    // Reset positioning and size styles back to CSS grid rules
+    theaterCard.style.left = '';
+    theaterCard.style.top = '';
+    theaterCard.style.right = '';
+    theaterCard.style.bottom = '';
+    theaterCard.style.width = '';
+    theaterCard.style.height = '';
+    showSyncMessage('Docked player back to grid');
+  }
+}
+
+if (popoutBtn) {
+  popoutBtn.addEventListener('click', () => togglePopoutPlayer());
+}
+if (dockPlayerBtn) {
+  dockPlayerBtn.addEventListener('click', () => togglePopoutPlayer(false));
+}
+
+// Drag handle functionality for floating header
+let isDraggingFloating = false;
+let floatStartX = 0, floatStartY = 0, floatInitialLeft = 0, floatInitialTop = 0;
+
+if (theaterHeader) {
+  theaterHeader.addEventListener('pointerdown', (e) => {
+    if (!theaterCard || !theaterCard.classList.contains('is-floating')) return;
+    if (e.target.closest('button')) return; // Ignore drag when clicking buttons inside header
+
+    isDraggingFloating = true;
+    theaterCard.style.transition = 'none';
+    const rect = theaterCard.getBoundingClientRect();
+    floatStartX = e.clientX;
+    floatStartY = e.clientY;
+    floatInitialLeft = rect.left;
+    floatInitialTop = rect.top;
+
+    // Switch from right/bottom to explicit top/left coordinates for smooth tracking
+    theaterCard.style.bottom = 'auto';
+    theaterCard.style.right = 'auto';
+    theaterCard.style.left = `${floatInitialLeft}px`;
+    theaterCard.style.top = `${floatInitialTop}px`;
+
+    try {
+      theaterHeader.setPointerCapture(e.pointerId);
+    } catch (err) {}
+  });
+
+  theaterHeader.addEventListener('pointermove', (e) => {
+    if (!isDraggingFloating || !theaterCard) return;
+    const dx = e.clientX - floatStartX;
+    const dy = e.clientY - floatStartY;
+
+    let newLeft = floatInitialLeft + dx;
+    let newTop = floatInitialTop + dy;
+
+    // Keep window inside visible viewport
+    const maxLeft = window.innerWidth - theaterCard.offsetWidth - 10;
+    const maxTop = window.innerHeight - theaterCard.offsetHeight - 10;
+    newLeft = Math.max(10, Math.min(maxLeft, newLeft));
+    newTop = Math.max(10, Math.min(maxTop, newTop));
+
+    theaterCard.style.left = `${newLeft}px`;
+    theaterCard.style.top = `${newTop}px`;
+  });
+
+  const endFloatingDrag = (e) => {
+    if (isDraggingFloating) {
+      isDraggingFloating = false;
+      if (theaterCard) theaterCard.style.transition = '';
+      try {
+        theaterHeader.releasePointerCapture(e.pointerId);
+      } catch (err) {}
+    }
+  };
+
+  theaterHeader.addEventListener('pointerup', endFloatingDrag);
+  theaterHeader.addEventListener('pointercancel', endFloatingDrag);
+}
+
+// Native Picture-in-Picture fallback/toggle
+if (pipBtn) {
+  pipBtn.addEventListener('click', async () => {
+    if (!sharedVideo) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (document.pictureInPictureEnabled) {
+        await sharedVideo.requestPictureInPicture();
+      } else {
+        alert('Native Picture-in-Picture is not supported in this browser. Use the Pop-out floating player button instead!');
+      }
+    } catch (err) {
+      console.warn('PiP error:', err);
+    }
+  });
+}
 
 const storedUser = localStorage.getItem('movieTogether_user');
 if (storedUser && (storedUser === 'Duck' || storedUser === 'Von')) {

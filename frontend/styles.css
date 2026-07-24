@@ -820,3 +820,110 @@ body {
   width: 10px;
   height: 10px;
 }
+
+/* Card Header Action Buttons */
+.card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.popout-btn, .pip-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.popout-btn:hover, .pip-btn:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.popout-btn.active {
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
+  border-color: var(--text-primary);
+}
+
+.theater-placeholder-card {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--card-border-hover);
+}
+
+/* Floating Resizable Pop-up Player Mode */
+.theater-card.is-floating {
+  position: fixed !important;
+  bottom: 24px;
+  right: 24px;
+  width: 520px;
+  height: 350px;
+  min-width: 320px;
+  min-height: 220px;
+  max-width: 95vw;
+  max-height: 90vh;
+  z-index: 99999;
+  resize: both;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  background: rgba(18, 18, 22, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 8px;
+  margin: 0 !important;
+  padding: 14px !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.theater-card.is-floating .card-header {
+  cursor: grab;
+  user-select: none;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.theater-card.is-floating .card-header:active {
+  cursor: grabbing;
+}
+
+.theater-card.is-floating .player-wrapper {
+  flex: 1;
+  height: 100%;
+  aspect-ratio: unset;
+  margin-bottom: 8px;
+  min-height: 0;
+}
+
+.theater-card.is-floating .shared-video,
+.theater-card.is-floating .plyr {
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+.theater-card.is-floating .sync-banner {
+  margin-top: 0;
+  padding-top: 6px;
+}
+

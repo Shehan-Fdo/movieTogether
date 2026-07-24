@@ -119,13 +119,49 @@
 
       <!-- Right Column: Theater Room -->
       <section class="right-panel">
-        <div class="card glass-card theater-card">
-          <div class="card-header">
-            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        <!-- Placeholder card when main player is popped out floating -->
+        <div class="card glass-card theater-placeholder-card hidden" id="theater-placeholder">
+          <div class="placeholder-content">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="placeholder-icon">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <rect x="9" y="9" width="10" height="10" rx="1"></rect>
             </svg>
-            <h2>Theater Room</h2>
-            <div class="theater-active-movie" id="active-movie-title">No Movie Selected</div>
+            <p>Player is running in <strong>Pop-up Window</strong> mode.</p>
+            <button class="btn btn-primary btn-sm" id="dock-player-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; margin-right: 6px;">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3"></path>
+                <path d="M21 8h-3a2 2 0 0 1-2-2V3"></path>
+                <path d="M3 16h3a2 2 0 0 1 2 2v3"></path>
+                <path d="M16 21v-3a2 2 0 0 1 2-2h3"></path>
+              </svg>
+              Dock Player Back
+            </button>
+          </div>
+        </div>
+
+        <div class="card glass-card theater-card" id="theater-card">
+          <div class="card-header" id="theater-header">
+            <div class="card-header-left">
+              <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <h2>Theater Room</h2>
+              <div class="theater-active-movie" id="active-movie-title">No Movie Selected</div>
+            </div>
+            <div class="card-header-actions">
+              <button class="btn-icon popout-btn" id="popout-btn" title="Pop-out Floating Player (Drag & Resize)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <rect x="9" y="9" width="10" height="10" rx="1" ry="1"></rect>
+                </svg>
+              </button>
+              <button class="btn-icon pip-btn" id="pip-btn" title="Native Picture-in-Picture">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                  <rect x="11" y="9" width="8" height="6" rx="1"></rect>
+                </svg>
+              </button>
+            </div>
           </div>
           
           <div class="player-wrapper">
