@@ -704,8 +704,20 @@ if (subUploadInput) {
 // --- Focus Guard Sync ---
 let isPageFocused = true;
 
+function isPopoutOrPiPActive() {
+  const isFloating = theaterCard && theaterCard.classList.contains('is-floating');
+  const isPiP = !!document.pictureInPictureElement;
+  return isFloating || isPiP;
+}
+
 function handleFocusChange(focused) {
   if (!currentUser) return; // Wait until joined
+  
+  // If losing focus but user is using pop-out floating player or PiP mode, keep watching without pause!
+  if (!focused && isPopoutOrPiPActive()) {
+    return;
+  }
+
   if (isPageFocused === focused) return; // Prevent duplicate triggers
   isPageFocused = focused;
 
@@ -728,6 +740,17 @@ window.addEventListener('blur', () => {
   handleFocusChange(false);
 });
 
+if (sharedVideo) {
+  sharedVideo.addEventListener('enterpictureinpicture', () => {
+    handleFocusChange(true);
+  });
+  sharedVideo.addEventListener('leavepictureinpicture', () => {
+    if (document.hidden) {
+      handleFocusChange(false);
+    }
+  });
+}
+
 // --- Pop-out Floating Player & Dragging Logic ---
 function togglePopoutPlayer(forceState) {
   if (!theaterCard) return;
@@ -738,6 +761,7 @@ function togglePopoutPlayer(forceState) {
     theaterCard.classList.add('is-floating');
     if (theaterPlaceholder) theaterPlaceholder.classList.remove('hidden');
     if (popoutBtn) popoutBtn.classList.add('active');
+    handleFocusChange(true);
     showSyncMessage('Popped out player window');
   } else {
     theaterCard.classList.remove('is-floating');
